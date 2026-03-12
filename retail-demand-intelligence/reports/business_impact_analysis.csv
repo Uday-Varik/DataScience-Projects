@@ -1,0 +1,3 @@
+strategy,total_cost,stockouts,overstock
+baseline,1074411.5,77121.03571428571,74479.53571428571
+ml_system,983060.0,53402.0,171118.0
