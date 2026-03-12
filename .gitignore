@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environments
+venv/
+.env
+
+# Ignore all datasets
+retail-demand-intelligence/data/raw/*
+retail-demand-intelligence/data/processed/*
+
+# Keep folder structure
+!retail-demand-intelligence/data/raw/.gitkeep
+!retail-demand-intelligence/data/processed/.gitkeep
+
+# Models
+retail-demand-intelligence/models/*
+!retail-demand-intelligence/models/.gitkeep
+
+# Logs
+retail-demand-intelligence/logs/*
+!retail-demand-intelligence/logs/.gitkeep
+
+# OS files
+.DS_Store
+Thumbs.db
