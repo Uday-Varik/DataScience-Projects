@@ -1,7 +1,18 @@
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+
+from src.model_diagnostics import (
+    add_forecast_intervals,
+    detect_demand_anomalies,
+    compute_model_metrics
+)
 
 # --------------------------------------------------
 # Page Configuration
@@ -53,9 +64,13 @@ filtered = inventory[
     (inventory["item_id"] == product)
 ]
 
+filtered = add_forecast_intervals(filtered)
+filtered = detect_demand_anomalies(filtered)
+
 # --------------------------------------------------
 # KPI Metrics
 # --------------------------------------------------
+st.subheader("System-wide performance metrics")
 
 baseline_cost = impact.loc[impact["strategy"]=="baseline","total_cost"].values[0]
 ml_cost = impact.loc[impact["strategy"]=="ml_system","total_cost"].values[0]
@@ -85,12 +100,35 @@ col3.metric(
 
 st.divider()
 
+# -----------------------------------------------
+## Selected Product Insights (Professional KPI Metrics)
+# -----------------------------------------------
+st.markdown("Selected Product Insights")
+
+col1, col2, col3 = st.columns(3)
+
+col1.metric(
+    "Total Sales",
+    int(filtered["sales"].sum())
+)
+
+col2.metric(
+    "Avg Predicted Demand",
+    round(filtered["predicted_demand"].mean(),2)
+)
+
+col3.metric(
+    "Avg Recommended Stock",
+    round(filtered["recommended_stock"].mean(),2)
+)
+
+
 # --------------------------------------------------
 # Tabs (Professional Dashboard Layout)
 # --------------------------------------------------
 
-tab1, tab2, tab3 = st.tabs(
-    ["Demand Forecast", "Inventory Intelligence", "Business Impact"]
+tab1, tab2, tab3, tab4 = st.tabs(
+    ["Demand Forecast", "Inventory Intelligence", "Business Impact", "Model Monitoring"]
 )
 
 # ==================================================
@@ -269,3 +307,60 @@ with tab3:
     fig_heat.update_layout(height=350)
 
     st.plotly_chart(fig_heat)
+
+
+# ==================================================
+# TAB 4 — MODEL MONITORING  
+# ==================================================
+with tab4:
+
+    st.subheader("Model Monitoring")
+
+    metrics = compute_model_metrics(filtered)
+
+    col1, col2, col3 = st.columns(3)
+
+    col1.metric("MAE", metrics["MAE"])
+    col2.metric("MAPE (%)", metrics["MAPE"])
+    col3.metric("RMSE", metrics["RMSE"])
+
+    st.divider()
+
+    st.subheader("Forecast Confidence Intervals")
+
+    fig_ci = px.line(
+        filtered,
+        x="date",
+        y=["predicted_demand","upper_ci","lower_ci"],
+        title="Prediction Uncertainty"
+    )
+
+    fig_ci.update_layout(height=400)
+
+    st.plotly_chart(fig_ci)
+
+    st.divider()
+
+    st.subheader("Demand Anomaly Detection")
+
+    anomalies = filtered[filtered["anomaly"] == True]
+
+    if len(anomalies) > 0:
+
+        fig_anomaly = px.scatter(
+            anomalies,
+            x="date",
+            y="sales",
+            color="sales",
+            title="Detected Demand Anomalies"
+        )
+
+        fig_anomaly.update_layout(height=350)
+
+        st.plotly_chart(fig_anomaly)
+
+        st.dataframe(anomalies)
+
+    else:
+
+        st.success("No demand anomalies detected")
