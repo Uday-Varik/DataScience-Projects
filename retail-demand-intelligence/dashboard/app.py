@@ -14,6 +14,13 @@ from src.model_diagnostics import (
     compute_model_metrics
 )
 
+from src.model_diagnostics import (
+    add_forecast_intervals,
+    detect_demand_anomalies,
+    compute_model_metrics,
+    compute_demand_risk
+)
+
 # --------------------------------------------------
 # Page Configuration
 # --------------------------------------------------
@@ -66,6 +73,7 @@ filtered = inventory[
 
 filtered = add_forecast_intervals(filtered)
 filtered = detect_demand_anomalies(filtered)
+filtered = compute_demand_risk(filtered)
 
 # --------------------------------------------------
 # KPI Metrics
@@ -122,6 +130,54 @@ col3.metric(
     round(filtered["recommended_stock"].mean(),2)
 )
 
+### Demand Risk Assessment KPI (Professional Feature)
+st.subheader("Demand Risk Assessment")
+
+avg_risk = filtered["risk_score"].mean()
+
+col1, col2 = st.columns(2)
+
+col1.metric(
+    "Average Risk Score",
+    f"{avg_risk:.1f}/100"
+)
+
+if avg_risk < 20:
+    col2.success("Low Stockout Risk")
+
+elif avg_risk < 50:
+    col2.warning("Moderate Stock Risk")
+
+else:
+    col2.error("High Stockout Risk")
+
+
+st.subheader("Demand Risk Over Time")
+
+
+## Risk Visualization
+fig_risk = px.line(
+    filtered,
+    x="date",
+    y="risk_score",
+    title="Stockout Risk Trend",
+)
+fig_risk.update_layout(height=350)
+st.plotly_chart(fig_risk)
+
+
+## High-risk days
+high_risk = filtered[filtered["risk_score"] > 60]
+
+if len(high_risk) > 0:
+
+    st.warning("⚠ High Stockout Risk Detected")
+
+    st.dataframe(
+        high_risk[
+            ["date","sales","predicted_demand","recommended_stock","risk_score"]
+        ].tail(10)
+    )
 
 # --------------------------------------------------
 # Tabs (Professional Dashboard Layout)

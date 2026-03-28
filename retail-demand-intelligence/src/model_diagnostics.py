@@ -25,9 +25,26 @@ def detect_demand_anomalies(df):
 
     return df
 
+## Demand Risk Scoring for Stockout Prediction
+def compute_demand_risk(df):
+
+    """
+    Risk score between 0–100 estimating probability of stockout.
+    Higher score = higher risk.
+    """
+
+    risk_ratio = (
+        df["predicted_demand"] - df["recommended_stock"]
+    ) / (df["predicted_demand"] + 1e-5)
+
+    risk_ratio = risk_ratio.clip(lower=0)
+
+    df["risk_score"] = (risk_ratio * 100).clip(upper=100)
+
+    return df
+
 
 ## Model Monitoring Metrics
-
 def compute_model_metrics(df):
 
     mae = np.mean(np.abs(df["sales"] - df["predicted_demand"]))
